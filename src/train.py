@@ -1,4 +1,5 @@
 """Train one (mixer, num_kv_pairs) config and return recall accuracy on held-out data."""
+import math
 import torch
 import torch.nn.functional as F
 
@@ -35,7 +36,18 @@ def train_one(mixer, num_kv_pairs, seq_len=256, steps=4000, bs=64,
 
     model = SeqModel(vocab, mixer=mixer, d=d, heads=heads, layers=layers,
                      max_len=seq_len).to(device)
-    opt = torch.optim.AdamW(model.parameters(), lr=lr)
+    opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.01)
+
+    # warmup + cosine decay: transformers need warmup to form induction heads
+    warmup = max(1, int(0.1 * steps))
+
+    def lr_scale(s):
+        if s < warmup:
+            return (s + 1) / warmup
+        prog = (s - warmup) / max(1, steps - warmup)
+        return 0.5 * (1 + math.cos(math.pi * prog))
+
+    sched = torch.optim.lr_scheduler.LambdaLR(opt, lr_scale)
     gen = torch.Generator().manual_seed(seed)
 
     step = 0
@@ -48,10 +60,15 @@ def train_one(mixer, num_kv_pairs, seq_len=256, steps=4000, bs=64,
                                    yb.reshape(-1), ignore_index=-100)
             opt.zero_grad()
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             opt.step()
+            sched.step()
             step += 1
             if log_every and step % log_every == 0:
-                print(f"    [{mixer} N={num_kv_pairs}] step {step} loss {loss.item():.3f}")
+                acc = recall_accuracy(model, Xte, Yte, device)
+                model.train()
+                print(f"    [{mixer} N={num_kv_pairs}] step {step:5d} "
+                      f"loss {loss.item():.3f} acc {acc:.3f}")
             if step >= steps:
                 break
 
