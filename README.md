@@ -6,35 +6,30 @@ selection preserve associative recall better than the fixed-size state of linear
 This is the **engine**, not the car: we test the *mechanism* on tiny models + short synthetic
 sequences (MQAR). We are **not** building a 12M-context LLM.
 
-## M1 (Week 1) — Reproduce the recall gap
+## M1 — reproduce the recall-vs-state frontier (Option A)
 
-Goal: show the known result — **softmax attention solves MQAR; a fixed-state linear-attention
-baseline degrades as the number of key→value pairs grows.** If we can't reproduce this gap, we
-fix that before doing anything else.
+The credible M1 is **reproducing Zoology's Figure 2** — recall accuracy vs. model dimension
+(state size) for attention vs. efficient architectures on MQAR — using the validated
+[`zoology`](https://github.com/HazyResearch/zoology) harness, which already implements the
+baselines (GLA, Based, DeltaNet, Mamba) **and DeepSeek native sparse attention** (our SSA-family
+reference).
 
-```bash
-pip install -r requirements.txt
-python src/mqar.py        # sanity-check the data generator
-python run_m1.py --smoke  # ~1 min: tiny run, confirms everything wires up
-python run_m1.py          # the real M1 sweep -> prints a table + saves results/recall_gap.png
-```
+- **The science / design:** [`docs/m1-design.md`](docs/m1-design.md) — research question,
+  controlled variables, target figure. Read this first.
+- **The runbook:** [`docs/m1-zoology-setup.md`](docs/m1-zoology-setup.md) — staged Colab setup.
 
-Expected shape of the result: attention accuracy stays ~high across `num_kv_pairs`;
-linear-attention accuracy falls off as pairs increase. That falloff is the recall wall this
-whole project is about.
+Why not hand-roll: tuning a ceiling model until it "wins" confounds architecture with capacity.
+The result is a *matched-budget scaling frontier*, not a single accuracy number.
 
-## Layout
+## The toy (`src/`, `run_m1.py`) — sanity check only
 
-```
-src/mqar.py     synthetic MQAR data + a self-check
-src/models.py   tiny seq model with swappable mixer: causal attention | linear attention
-src/train.py    train one (mixer, num_kv_pairs) config, return recall accuracy
-run_m1.py       sweep over num_kv_pairs for both mixers, print table + plot
-```
+A from-scratch MQAR + tiny attention-vs-linear model. Kept as a pedagogical sanity check (it's how
+we found the induction-head phase-transition / warmup lesson). **Not** the basis for results — the
+Zoology reproduction is. Run it with `python run_m1.py`.
 
-## Next (later months, not now)
+## Next
 
-- M2: swap the toy linear-attention loop for real baselines via `flash-linear-attention`
-  (Mamba-2, DeltaNet, Gated DeltaNet), and add the **SSA-style sparse-attention** mixer.
-- M3+: recall-vs-length and recall-vs-compute frontiers. See the full plan in the KnowledgeBank
-  wiki: `wiki/analyses/ssa-recall-research-6month-plan.md`.
+- M2: add/evaluate the **SSA-style sparse-attention** mixer on the same frontier, vs. NSA + the
+  fixed-state baselines.
+- M3+: recall-vs-length and recall-vs-compute frontiers. Full plan in the KnowledgeBank wiki:
+  `wiki/analyses/ssa-recall-research-6month-plan.md`.
