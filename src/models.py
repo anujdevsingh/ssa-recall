@@ -4,9 +4,8 @@ Two mixers for M1:
   - CausalSelfAttention : full softmax attention (the recall ceiling)
   - LinearAttention     : fixed-state linear attention (the recall-weak baseline)
 
-Both are deliberately small and simple. The LinearAttention loop over time is slow but
-fine at toy lengths.
-# ponytail: O(L) python recurrence; replace with flash-linear-attention kernels in M2.
+# ponytail: LinearAttention uses the parallel cumsum form (verified == the naive
+# time-loop); swap to flash-linear-attention kernels in M2 for the real baselines.
 """
 import math
 import torch
@@ -48,16 +47,12 @@ class LinearAttention(nn.Module):
         q, k, v = qkv[0], qkv[1], qkv[2]
         q = F.elu(q) + 1
         k = F.elu(k) + 1
-        S = torch.zeros(B, self.h, hd, hd, device=x.device)   # sum of k^T v
-        Z = torch.zeros(B, self.h, hd, device=x.device)       # sum of k (normalizer)
-        out = torch.zeros(B, self.h, L, hd, device=x.device)
-        for t in range(L):
-            S = S + k[:, :, t].unsqueeze(-1) * v[:, :, t].unsqueeze(-2)
-            Z = Z + k[:, :, t]
-            num = (q[:, :, t].unsqueeze(-2) @ S).squeeze(-2)
-            den = (q[:, :, t] * Z).sum(-1, keepdim=True) + 1e-6
-            out[:, :, t] = num / den
-        o = out.transpose(1, 2).reshape(B, L, D)
+        # parallel causal form: S_t = cumsum_t (k_t outer v_t), Z_t = cumsum_t k_t
+        S = torch.cumsum(k.unsqueeze(-1) * v.unsqueeze(-2), dim=2)   # (B,h,L,hd,hd)
+        Z = torch.cumsum(k, dim=2)                                   # (B,h,L,hd)
+        num = torch.einsum("bhli,bhlij->bhlj", q, S)
+        den = (q * Z).sum(-1, keepdim=True) + 1e-6
+        o = (num / den).transpose(1, 2).reshape(B, L, D)
         return self.proj(o)
 
 

@@ -15,21 +15,22 @@ def main():
     ap.add_argument("--smoke", action="store_true", help="tiny fast run to verify wiring")
     args = ap.parse_args()
 
+    seq_len = 256  # fixed across the sweep so all N fit (need seq_len >= 3*N) and only N varies
     if args.smoke:
         pairs = [4, 16]
-        steps, n_train = 80, 1000
+        steps, n_train = 400, 4000
     else:
         pairs = [4, 8, 16, 32, 64]
-        steps, n_train = 2000, 12000
+        steps, n_train = 4000, 16000
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"device={device}  steps={steps}  pairs={pairs}\n")
+    print(f"device={device}  seq_len={seq_len}  steps={steps}  pairs={pairs}\n")
 
     results = {"attention": [], "linear": []}
     for mixer in ("attention", "linear"):
         for n in pairs:
-            acc = train_one(mixer, num_kv_pairs=n, steps=steps, n_train=n_train,
-                            device=device)
+            acc = train_one(mixer, num_kv_pairs=n, seq_len=seq_len, steps=steps,
+                            n_train=n_train, device=device)
             results[mixer].append(acc)
             print(f"{mixer:10s}  N={n:3d}  recall_acc={acc:.3f}")
 
