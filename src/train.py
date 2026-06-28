@@ -28,8 +28,8 @@ def recall_accuracy(model, X, Y, device):
 
 
 def train_one(mixer, num_kv_pairs, seq_len=256, steps=4000, bs=64,
-              n_train=16000, n_test=1000, d=128, layers=2, heads=4,
-              lr=1e-3, seed=0, device=None, log_every=0):
+              n_train=16000, n_test=1000, d=256, layers=2, heads=8,
+              lr=1e-3, seed=0, device=None, log_every=0, target_acc=0.999):
     device = device or ("cuda" if torch.cuda.is_available() else "cpu")
     Xtr, Ytr, vocab = generate_mqar(n_train, seq_len, num_kv_pairs, seed=seed)
     Xte, Yte, _ = generate_mqar(n_test, seq_len, num_kv_pairs, seed=seed + 999)
@@ -69,6 +69,8 @@ def train_one(mixer, num_kv_pairs, seq_len=256, steps=4000, bs=64,
                 model.train()
                 print(f"    [{mixer} N={num_kv_pairs}] step {step:5d} "
                       f"loss {loss.item():.3f} acc {acc:.3f}")
+                if acc >= target_acc:  # solved — stop early, save the compute budget
+                    return acc
             if step >= steps:
                 break
 

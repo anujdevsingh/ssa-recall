@@ -18,19 +18,20 @@ def main():
     seq_len = 128  # fixed across the sweep so all N fit (need seq_len >= 3*N) and only N varies
     if args.smoke:
         pairs = [4, 16]
-        steps, n_train = 1500, 4000
+        steps, n_train = 2000, 4000
     else:
         pairs = [4, 8, 16, 32]
-        steps, n_train = 8000, 16000
+        steps, n_train = 20000, 20000
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"device={device}  seq_len={seq_len}  steps={steps}  pairs={pairs}\n")
+    print(f"device={device}  seq_len={seq_len}  max_steps={steps}  pairs={pairs}"
+          f"  (early-stop at acc>=0.999)\n")
 
     results = {"attention": [], "linear": []}
     for mixer in ("attention", "linear"):
         for n in pairs:
             acc = train_one(mixer, num_kv_pairs=n, seq_len=seq_len, steps=steps,
-                            n_train=n_train, device=device, log_every=max(1, steps // 8))
+                            n_train=n_train, device=device, log_every=1000)
             results[mixer].append(acc)
             print(f"{mixer:10s}  N={n:3d}  recall_acc={acc:.3f}\n")
 
