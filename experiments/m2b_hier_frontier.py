@@ -39,7 +39,7 @@ K_SEL = 4                     # fine blocks attended exactly (matches M2a NSA nu
 # length -> (num_kv_pairs, batch_size). kv scales with length; batch shrinks for the T4.
 # L8192 dropped from this sweep — dense attention OOMs the T4 (8192^2 score matrix > 100GB).
 # That length point will be a hier-only follow-up experiment.
-LENGTHS = {128: (8, 256), 512: (32, 256), 2048: (128, 64)}
+LENGTHS = {128: (8, 256), 512: (32, 128), 2048: (128, 64)}
 # 0.98 (not 0.99) early-stop: NSA converges to ~0.985 here and 98%+ MQAR == "rides the ceiling";
 # 0.99 left NSA training 64 full epochs at every length. 40-epoch cap matches M2a's "~45ep" finding.
 EARLY_STOP = 0.98
@@ -100,3 +100,21 @@ _S = int(os.environ.get("SHARD", 0))
 _N = int(os.environ.get("NSHARDS", 1))
 configs = configs[_S::_N]
 print(f"[shard] {_S}/{_N} -> running {len(configs)} configs on this process")
+
+# zoology.launch's non-ray path has no per-run try/except (only the ray path does), so one OOM
+# kills every remaining config on this GPU. Run directly with `python m2b_hier_frontier.py`
+# instead of `python -m zoology.launch ...` to get per-config OOM recovery.
+if __name__ == "__main__":
+    import torch
+    from datetime import datetime
+    from zoology.train import train
+
+    launch_id = f"shard{_S}-{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}"
+    for config in configs:
+        config.launch_id = launch_id
+        try:
+            train(config)
+        except torch.cuda.OutOfMemoryError as e:
+            print(f"[OOM] skipping {config.run_id}: {e}")
+        finally:
+            torch.cuda.empty_cache()
