@@ -36,7 +36,13 @@ S1 = 2                        # top super-blocks visited
 K_SEL = 4                     # fine blocks attended exactly (matches M2a NSA num_selected_blocks)
 
 # length -> (num_kv_pairs, batch_size). kv scales with length; batch shrinks for the T4.
-LENGTHS = {128: (8, 256), 512: (32, 256), 2048: (128, 64), 8192: (512, 16)}
+# L8192 dropped from this sweep — dense attention OOMs the T4 (8192^2 score matrix > 100GB).
+# That length point will be a hier-only follow-up experiment.
+LENGTHS = {128: (8, 256), 512: (32, 256), 2048: (128, 64)}
+# 0.98 (not 0.99) early-stop: NSA converges to ~0.985 here and 98%+ MQAR == "rides the ceiling";
+# 0.99 left NSA training 64 full epochs at every length. 40-epoch cap matches M2a's "~45ep" finding.
+EARLY_STOP = 0.98
+MAX_EPOCHS = 40
 
 
 def hier_g(seq_len):
@@ -81,7 +87,7 @@ for seq_len, (num_kv_pairs, batch_size) in LENGTHS.items():
                                 batch_size=batch_size, seed=123, cache_dir="/content/zoology_cache"),
                 model=ModelConfig(vocab_size=vocab_size, max_position_embeddings=seq_len,
                                   d_model=d_model, n_layers=2, sequence_mixer=mixer(arch, seq_len)),
-                max_epochs=64, learning_rate=float(lr), weight_decay=0.1,
-                early_stopping_metric="valid/accuracy", early_stopping_threshold=0.99,
+                max_epochs=MAX_EPOCHS, learning_rate=float(lr), weight_decay=0.1,
+                early_stopping_metric="valid/accuracy", early_stopping_threshold=EARLY_STOP,
                 run_id=f"{arch}-L{seq_len}-lr{lr:.1e}",
             ))
