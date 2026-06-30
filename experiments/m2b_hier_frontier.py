@@ -25,6 +25,7 @@ GATES before trusting a sweep:
 Run: python -m zoology.launch /content/ssa-recall/experiments/m2b_hier_frontier.py
 """
 import math
+import os
 import numpy as np
 from zoology.config import TrainConfig, ModelConfig, DataConfig, ModuleConfig
 from zoology.data.multiquery_ar import MQARConfig
@@ -91,3 +92,11 @@ for seq_len, (num_kv_pairs, batch_size) in LENGTHS.items():
                 early_stopping_metric="valid/accuracy", early_stopping_threshold=EARLY_STOP,
                 run_id=f"{arch}-L{seq_len}-lr{lr:.1e}",
             ))
+
+# Parallel-GPU sharding: launch N processes, each with SHARD=i NSHARDS=N
+# CUDA_VISIBLE_DEVICES=i, and they round-robin-split the config list with no overlap.
+# Default (no env) runs all configs on one GPU as before.
+_S = int(os.environ.get("SHARD", 0))
+_N = int(os.environ.get("NSHARDS", 1))
+configs = configs[_S::_N]
+print(f"[shard] {_S}/{_N} -> running {len(configs)} configs on this process")
