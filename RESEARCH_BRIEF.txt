@@ -1,0 +1,219 @@
+================================================================================
+RESEARCH BRIEF — Recall-Preserving Sparse Attention at Small Scale
+Project codename: ssa-recall
+Author: Anuj Dev Singh (anujdev9928@gmail.com, GitHub: anujdevsingh)
+Repo: https://github.com/anujdevsingh/ssa-recall (currently private)
+Brief prepared: 2026-07-02
+Project window: ~6 months, started 2026-06-28 (currently in week 1, ahead of plan)
+Target output: arXiv preprint + workshop paper (NeurIPS/ICLR efficient-ML or
+long-context workshop) + public reproducible repo
+================================================================================
+
+
+1. ONE-PARAGRAPH SUMMARY
+--------------------------------------------------------------------------------
+This is a small-scale, reproducible empirical study of whether CONTENT-BASED
+SPARSE ATTENTION can preserve associative recall — the known failure mode of
+sub-quadratic sequence models — while keeping its selection mechanism itself
+sub-quadratic. The testbed is MQAR (Multi-Query Associative Recall) from the
+HazyResearch "Zoology" harness, run on tiny models (millions of parameters) on
+free-tier GPUs. So far I have (a) reproduced the Zoology recall-vs-state-size
+gap between attention and gated-convolution models, (b) shown that DeepSeek-NSA
+style sparse attention rides the full-attention recall ceiling (~0.99) at
+matched capacity, and (c) designed and implemented a novel HIERARCHICAL
+(two-level tree) block selector that reduces the selector's cost from O(n^2)
+to ~O(n^1.5), which is the paper's intended core contribution. The length-sweep
+experiment that tests this selector is coded, hardened, and ready to run.
+
+
+2. MOTIVATION AND CONTEXT
+--------------------------------------------------------------------------------
+- The associative-recall wall: linear-attention / SSM / convolutional models
+  compress history into a fixed-size state and demonstrably fail exact
+  key->value recall (Zoology, Arora et al.). Full attention solves recall but
+  is O(n^2).
+- In May 2026 the startup Subquadratic ("SubQ", $29M seed, Miami) launched a
+  claimed 12M-token-context LLM built on "SSA" (Subquadratic Sparse Attention):
+  per-query content-based top-k selection followed by EXACT attention over the
+  selected subset, claimed O(n*k). All benchmark numbers are vendor-run; there
+  is NO paper and no independent reproduction. The field's loudest complaint
+  is precisely "no paper."
+- The nearest public cousin is DeepSeek's NSA (Native Sparse Attention). But
+  NSA's selector is itself quadratic: every query scores ALL compressed blocks
+  (O(n^2 / block_size)) — the complexity is moved, not removed.
+- Opportunity: an honest, independent, small-scale study of whether content-
+  based sparse selection preserves recall — and whether the selector can be
+  made genuinely sub-quadratic without losing recall — is cheap, tractable,
+  currently missing from the literature, and directly wanted.
+
+Research question, split into two claims:
+  C1 (validation): Content-based sparse attention preserves associative recall
+      at matched capacity (vs. the fixed-state alternatives, which fail).
+  C2 (novel contribution): A HIERARCHICAL, sub-quadratic selector preserves
+      that recall while cutting selection cost — demonstrated on a
+      recall-vs-length AND cost-vs-length frontier. C2 is the paper.
+      (seq-128 results alone prove nothing about cost scaling — the length
+      axis is essential.)
+
+
+3. EXPERIMENTAL SETUP
+--------------------------------------------------------------------------------
+- Benchmark: MQAR — the model sees key->value pairs, then queries; exact-match
+  recall accuracy. Canonical config so far: input_seq_len=128, num_kv_pairs=8,
+  vocab_size=8192.
+- Harness: HazyResearch `zoology` (validated public harness; implements the
+  baselines and DeepSeek NSA as ready-made mixers). Custom mixers are written
+  to be zoology-compatible drop-ins.
+- Protocol: matched-capacity frontier — sweep d_model in {64, 128, 256} x
+  architecture x 3 learning rates, report best-over-LR recall per point. This
+  controls capacity so results reflect ARCHITECTURE, not tuning effort.
+- Compute: free Colab / Kaggle T4s (single GPU; sweeps shardable across
+  multiple Kaggle sessions). Total project compute budget ~$50-300.
+- Cost metric for C2: scored key-value pairs per query (a hardware-independent
+  operation count), not formula FLOPs; the prototype uses gather+mask so
+  wall-clock is indicative only.
+
+
+4. RESULTS SO FAR
+--------------------------------------------------------------------------------
+M1 — REPRODUCTION OF THE RECALL GAP (done 2026-06-28, committed)
+  Attention vs. base_conv (gated convolution) on MQAR, best-over-LR recall:
+
+     d_model | attention | base_conv
+     --------+-----------+----------
+        64   |   0.998   |   0.097
+       128   |   0.996   |   0.127
+       256   |   0.996   |   0.131
+
+  - Clean ~0.87 absolute separation, stable across three model sizes.
+  - Strength of the result: on base_conv, train loss -> ~0 while val recall
+    stays ~0.10 — the gap is architectural, not undertraining.
+  - Caveats: attention d512 did not converge within the 48-epoch cap
+    (optimization artifact, excluded from headline); base_conv d512 partial
+    (runtime died at epoch 15, plateaued ~0.13).
+  - Artifacts: experiments/m1_results/ (RESULTS.md, figure, parser script).
+
+M2a — NSA ON THE SAME FRONTIER (done 2026-06-29, committed, commit 9a855bc)
+  Added zoology.mixers.deepseek_nsa.SparseAttention as a third curve,
+  same protocol, run on Kaggle T4:
+
+     d_model | attention | base_conv |   NSA
+     --------+-----------+-----------+-------
+        64   |   0.997   |   0.096   | 0.991
+       128   |   0.998   |   0.129   | 0.990
+       256   |   0.994   |   0.130   | 0.993
+
+  - NSA rides the attention ceiling at all three sizes; base_conv stays at
+    the floor. This confirms HALF of the SubQ thesis (C1): content-based
+    sparse attention preserves recall at matched capacity.
+  - It does NOT confirm the other half: NSA's selector is quadratic (every
+    query scores all compressed blocks densely).
+  - Observations: NSA converges slower (~45-50 epochs vs. ~10-15 for
+    attention) and is more LR-sensitive.
+  - Artifacts: experiments/m2_results/ (sweep.log, RESULTS.md, frontier plot).
+
+M2b — HIERARCHICAL SUB-QUADRATIC SELECTOR (designed + coded, NOT YET RUN)
+  The novel contribution. Implementation: src/hier_nsa.py
+  (HierSparseAttention, a zoology-compatible mixer) and
+  experiments/m2b_hier_frontier.py (the length-sweep harness).
+
+  Design (informed by reading lucidrains/native-sparse-attention-pytorch,
+  which zoology's NSA mixer wraps):
+  - Where NSA's quadratic cost actually lives: the COARSE branch — every
+    query attends over all n/cb compressed blocks (O(n^2/cb)); that dense
+    score feeds top-k. The top-k itself is not the problem.
+  - The fix: replace the dense coarse stage with a TWO-LEVEL TREE.
+    Query scores `nsup` super-block summaries (dense but small) -> select
+    top-s1 super-blocks -> gather their g member blocks -> top-k fine blocks
+    -> exact attention over those. Per-query coarse cost = nsup + s1*g,
+    vs. NSA's nblk.
+  - Scaling rule: g (super-block group size) must scale as round(sqrt(nblk))
+    per sequence length — a fixed g stays O(n^2); with the sqrt rule the
+    selector is ~O(n^1.5). The harness sets g per length.
+  - Gradient path: hard top-k descent is non-differentiable; gradients reach
+    the scoring projections via softmax over the VISITED candidate-block
+    scores plus a sigmoid importance gate on the selected blocks.
+  - Causality: the coarse stage uses only fully-past blocks (block_end <= t)
+    so block-mean summaries never include future tokens; a sliding window
+    covers the recent region; branches are zeroed when no past block exists
+    (an all-masked softmax otherwise leaks future information — this bug was
+    caught and fixed during implementation).
+
+  Experiment plan: recall AND cost vs. sequence length, seq in {128, 512,
+  2048} (8192 deferred to a separate experiment), hier vs. NSA vs. attention.
+  Harness hardening already committed (2026-06-30): 0.98 early-stop, 40-epoch
+  cap, SHARD/NSHARDS env vars for parallel multi-GPU sweeps, per-run OOM
+  recovery, L512 batch-size fix.
+
+
+5. CURRENT STAGE (as of 2026-07-02)
+--------------------------------------------------------------------------------
+Timeline position: end of week 1 of ~26. Ahead of the original month-by-month
+plan (M1 was budgeted a month; M1 + M2a + M2b implementation took 3 days).
+
+Done:        M1 reproduction; M2a NSA frontier; M2b selector design + code +
+             hardened sweep harness. All committed and pushed to GitHub
+             (latest commit bce74d6, 2026-06-30).
+In flight:   M2b EXECUTION on Kaggle. Gate 1: `python src/hier_nsa.py`
+             self-test (shape/causality/gradient checks). Gate 2: one hier
+             run at seq128 must match NSA recall (~0.99). Then the full
+             length sweep. (Runs must happen on Colab/Kaggle: the local
+             Windows PyTorch install is broken — DLL load failure.)
+Next after M2b:
+  M3 — full recall-vs-length and recall-vs-compute curves, hier vs. NSA vs.
+       attention vs. fixed-state baselines (Mamba/DeltaNet via
+       flash-linear-attention).
+  M4 — ablations: top-k size, tree depth/branching, selection temperature;
+       sharp question: can sparse selection alone close the recall gap?
+  M5 — write-up (Overleaf), repo cleanup, blog post, the one killer figure
+       (recall-vs-cost frontier).
+  M6 — arXiv + workshop submission + public release (repo, X/HN).
+
+
+6. ANTICIPATED OUTCOMES AND HONEST FRAMING
+--------------------------------------------------------------------------------
+- If hier matches NSA recall at all lengths at ~O(n^1.5) selector cost:
+  the paper's claim is "recall-preserving sparse attention does not require a
+  quadratic selector" — a concrete, independent, reproducible data point on
+  the open SSA/SubQ question.
+- If hier loses recall at longer lengths: that is ALSO a publishable negative
+  result — "the dense coarse pass is what buys recall; cheap selection
+  reintroduces the recall wall" — and directly informs the field's sharpest
+  open question (sparse selection vs. selective exact memory).
+- Known limitations to state up front: synthetic task only (MQAR; RULER/NIAH
+  is a stretch goal), tiny models, single-run-per-cell budget (best-over-LR,
+  not error bars over seeds), cost measured in scored-pairs/query rather than
+  optimized-kernel wall-clock.
+
+
+7. REPOSITORY MAP
+--------------------------------------------------------------------------------
+  src/mqar.py                      self-contained MQAR generator (verified vs numpy)
+  src/models.py, src/train.py      pedagogical toy baseline (sanity check only)
+  src/hier_nsa.py                  HierSparseAttention — the novel mixer + self-test
+  experiments/m1_recall_frontier.py   M1 sweep config
+  experiments/m2_ssa_frontier.py      M2a sweep config
+  experiments/m2b_hier_frontier.py    M2b length-sweep harness (shardable)
+  experiments/parse_frontier.py       log -> table/figure parser
+  experiments/m1_results/             committed M1 artifacts (RESULTS.md, figure)
+  experiments/m2_results/             committed M2a artifacts (log, RESULTS.md, figures)
+  docs/                               design docs and runbooks
+
+Reproduction: every result in this brief regenerates from committed configs on
+a free Colab/Kaggle T4; parsed results and raw logs are committed alongside
+figures.
+
+
+8. BACKGROUND READING BEHIND THE DESIGN
+--------------------------------------------------------------------------------
+- Zoology (HazyResearch): MQAR benchmark and the recall-vs-state frontier.
+- DeepSeek NSA (Native Sparse Attention): the public content-based sparse
+  attention reference; zoology wraps lucidrains' implementation.
+- SubQ / Subquadratic launch coverage (2026-05): the unverified 12M-context
+  SSA claims this project independently probes.
+- Based/DeltaNet/Mamba literature: the fixed-state baselines and the
+  recall-throughput tradeoff framing.
+
+================================================================================
+END OF BRIEF
+================================================================================

@@ -43,7 +43,7 @@ LENGTHS = {128: (8, 256), 512: (32, 128), 2048: (128, 64)}
 # 0.98 (not 0.99) early-stop: NSA converges to ~0.985 here and 98%+ MQAR == "rides the ceiling";
 # 0.99 left NSA training 64 full epochs at every length. 40-epoch cap matches M2a's "~45ep" finding.
 EARLY_STOP = 0.98
-MAX_EPOCHS = 40
+MAX_EPOCHS = int(os.environ.get("EPOCHS", 40))   # raise per-session if long lengths need it
 
 
 def hier_g(seq_len):
@@ -99,7 +99,14 @@ for seq_len, (num_kv_pairs, batch_size) in LENGTHS.items():
 _S = int(os.environ.get("SHARD", 0))
 _N = int(os.environ.get("NSHARDS", 1))
 configs = configs[_S::_N]
-print(f"[shard] {_S}/{_N} -> running {len(configs)} configs on this process")
+
+# Repair runs: ONLY=hier-L2048,nsa-L2048 re-runs just the configs whose run_id
+# starts with one of the given prefixes (applied after sharding).
+_ONLY = os.environ.get("ONLY", "")
+if _ONLY:
+    _keys = _ONLY.split(",")
+    configs = [c for c in configs if any(c.run_id.startswith(k) for k in _keys)]
+print(f"[shard] {_S}/{_N} only={_ONLY or 'all'} -> running {len(configs)} configs on this process")
 
 # zoology.launch's non-ray path has no per-run try/except (only the ray path does), so one OOM
 # kills every remaining config on this GPU. Run directly with `python m2b_hier_frontier.py`
