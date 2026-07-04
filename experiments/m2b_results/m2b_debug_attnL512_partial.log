@@ -1,0 +1,55 @@
+# M2b debug run: attention-L512-lr3.2e-04, EPOCHS=100, Kaggle T4, 2026-07-04.
+# Purpose: test whether attention-L512's failure in the first sweep (best 0.059 @ 40-epoch cap)
+# was an epoch-budget problem. VERDICT: yes — 0.747 @ epoch 44 and still climbing steeply.
+# Session died at epoch 45 (interactive Kaggle session stopped); log recovered from notebook output.
+# Config: batch 128 (157 steps/epoch), early_stop 0.98, seed 123, launch_id shard0-2026-07-04-07-15-26.
+[cost] L=  128  nblk=   8  g=  3  hier_pairs/q=   9  vs  nsa_pairs/q=   8  (0.9x cheaper)
+[cost] L=  512  nblk=  32  g=  6  hier_pairs/q=  18  vs  nsa_pairs/q=  32  (1.8x cheaper)
+[cost] L= 2048  nblk= 128  g= 11  hier_pairs/q=  34  vs  nsa_pairs/q= 128  (3.8x cheaper)
+[shard] 0/1 only=attention-L512 -> running 3 configs on this process
+run_id='attention-L512-lr3.2e-04'  learning_rate=0.00031622776601683794  max_epochs=100
+Valid Epoch 0/100:  valid/loss=8.36, valid/accuracy=0.00025
+Valid Epoch 1/100:  valid/loss=8.34, valid/accuracy=0.000266
+Valid Epoch 2/100:  valid/loss=8.32, valid/accuracy=0.000656
+Valid Epoch 3/100:  valid/loss=8.13, valid/accuracy=0.00336
+Valid Epoch 4/100:  valid/loss=7.98, valid/accuracy=0.00561
+Valid Epoch 5/100:  valid/loss=7.86, valid/accuracy=0.00784
+Valid Epoch 6/100:  valid/loss=7.75, valid/accuracy=0.0101
+Valid Epoch 7/100:  valid/loss=7.67, valid/accuracy=0.0115
+Valid Epoch 8/100:  valid/loss=7.61, valid/accuracy=0.0128
+Valid Epoch 9/100:  valid/loss=7.56, valid/accuracy=0.0135
+Valid Epoch 10/100: valid/loss=7.54, valid/accuracy=0.0145
+Valid Epoch 11/100: valid/loss=7.53, valid/accuracy=0.0156
+Valid Epoch 12/100: valid/loss=7.53, valid/accuracy=0.0178
+Valid Epoch 13/100: valid/loss=7.54, valid/accuracy=0.0194
+Valid Epoch 14/100: valid/loss=7.56, valid/accuracy=0.0204
+Valid Epoch 15/100: valid/loss=7.58, valid/accuracy=0.0223
+Valid Epoch 16/100: valid/loss=7.6,  valid/accuracy=0.0236
+Valid Epoch 17/100: valid/loss=7.58, valid/accuracy=0.0304
+Valid Epoch 18/100: valid/loss=7.43, valid/accuracy=0.0534
+Valid Epoch 20/100: valid/loss=7.44, valid/accuracy=0.0568
+Valid Epoch 21/100: valid/loss=7.23, valid/accuracy=0.0738
+Valid Epoch 22/100: valid/loss=6.96, valid/accuracy=0.0865
+Valid Epoch 23/100: valid/loss=6.72, valid/accuracy=0.144
+Valid Epoch 24/100: valid/loss=6.69, valid/accuracy=0.15
+Valid Epoch 25/100: valid/loss=6.17, valid/accuracy=0.171
+Valid Epoch 26/100: valid/loss=5.67, valid/accuracy=0.222
+Valid Epoch 27/100: valid/loss=5.18, valid/accuracy=0.307
+Valid Epoch 28/100: valid/loss=4.88, valid/accuracy=0.368
+Valid Epoch 29/100: valid/loss=4.84, valid/accuracy=0.37
+Valid Epoch 30/100: valid/loss=4.85, valid/accuracy=0.371
+Valid Epoch 31/100: valid/loss=4.84, valid/accuracy=0.371
+Valid Epoch 32/100: valid/loss=4.67, valid/accuracy=0.397
+Valid Epoch 33/100: valid/loss=4.43, valid/accuracy=0.422
+Valid Epoch 34/100: valid/loss=4.34, valid/accuracy=0.433
+Valid Epoch 35/100: valid/loss=4.34, valid/accuracy=0.433
+Valid Epoch 36/100: valid/loss=4.35, valid/accuracy=0.433
+Valid Epoch 37/100: valid/loss=4.36, valid/accuracy=0.434
+Valid Epoch 38/100: valid/loss=4.34, valid/accuracy=0.436
+Valid Epoch 39/100: valid/loss=4.13, valid/accuracy=0.464
+Valid Epoch 40/100: valid/loss=4.09, valid/accuracy=0.465
+Valid Epoch 41/100: valid/loss=3.62, valid/accuracy=0.501
+Valid Epoch 42/100: valid/loss=2.85, valid/accuracy=0.573
+Valid Epoch 43/100: valid/loss=2.11, valid/accuracy=0.677
+Valid Epoch 44/100: valid/loss=1.67, valid/accuracy=0.747
+# (session stopped during train epoch 45)
