@@ -26,6 +26,10 @@ Run: python -m zoology.launch /content/ssa-recall/experiments/m2b_hier_frontier.
 """
 import math
 import os
+
+# New env name (PYTORCH_CUDA_ALLOC_CONF is the deprecated one); inherited by per-run subprocesses.
+os.environ.setdefault("PYTORCH_ALLOC_CONF", "expandable_segments:True")
+
 import numpy as np
 from zoology.config import TrainConfig, ModelConfig, DataConfig, ModuleConfig
 from zoology.data.multiquery_ar import MQARConfig
@@ -39,7 +43,8 @@ K_SEL = 4                     # fine blocks attended exactly (matches M2a NSA nu
 # length -> (num_kv_pairs, batch_size). kv scales with length; batch shrinks for the T4.
 # L8192 dropped from this sweep — dense attention OOMs the T4 (8192^2 score matrix > 100GB).
 # That length point will be a hier-only follow-up experiment.
-LENGTHS = {128: (8, 256), 512: (32, 128), 2048: (128, 64)}
+# L512 batch 128->32, L2048 64->16: nsa/hier OOM'd the 14.5GB T4 at the old sizes (repair sweep 2026-07-04).
+LENGTHS = {128: (8, 256), 512: (32, 32), 2048: (128, 16)}
 # 0.98 (not 0.99) early-stop: NSA converges to ~0.985 here and 98%+ MQAR == "rides the ceiling";
 # 0.99 left NSA training 64 full epochs at every length. 40-epoch cap matches M2a's "~45ep" finding.
 EARLY_STOP = 0.98
@@ -108,20 +113,29 @@ if _ONLY:
     configs = [c for c in configs if any(c.run_id.startswith(k) for k in _keys)]
 print(f"[shard] {_S}/{_N} only={_ONLY or 'all'} -> running {len(configs)} configs on this process")
 
-# zoology.launch's non-ray path has no per-run try/except (only the ray path does), so one OOM
-# kills every remaining config on this GPU. Run directly with `python m2b_hier_frontier.py`
-# instead of `python -m zoology.launch ...` to get per-config OOM recovery.
+# Run directly with `python m2b_hier_frontier.py` (not `python -m zoology.launch ...`).
+# Each config runs in a FRESH SUBPROCESS: the 2026-07-04 repair sweep showed ~13GB stays
+# allocated after a run finishes in-process (empty_cache doesn't reclaim it), OOMing every
+# subsequent nsa/hier config. A child process per run guarantees a clean CUDA context, and a
+# crash (OOM or otherwise) only kills that child.
 if __name__ == "__main__":
-    import torch
+    import subprocess
+    import sys
     from datetime import datetime
-    from zoology.train import train
+
+    if os.environ.get("SUBPROC") == "1":  # child: train the single config selected via ONLY=
+        from zoology.train import train
+        config = configs[0]
+        config.launch_id = os.environ["LAUNCH_ID"]
+        train(config)
+        sys.exit(0)
 
     launch_id = f"shard{_S}-{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}"
     for config in configs:
-        config.launch_id = launch_id
-        try:
-            train(config)
-        except torch.cuda.OutOfMemoryError as e:
-            print(f"[OOM] skipping {config.run_id}: {e}")
-        finally:
-            torch.cuda.empty_cache()
+        # ONLY=<full run_id> selects exactly this config in the child (child re-derives the
+        # full list, so SHARD/NSHARDS are reset — the parent already did the sharding).
+        env = {**os.environ, "SUBPROC": "1", "ONLY": config.run_id,
+               "LAUNCH_ID": launch_id, "SHARD": "0", "NSHARDS": "1"}
+        r = subprocess.run([sys.executable, os.path.abspath(__file__)], env=env)
+        if r.returncode != 0:
+            print(f"[FAIL] {config.run_id} exited {r.returncode} (OOM or crash) — continuing")
