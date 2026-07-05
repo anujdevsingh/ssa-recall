@@ -94,7 +94,7 @@ TrainConfig(
     learning_rate=0.00031622776601683794,
     weight_decay=0.1,
     seed=123,
-    launch_id='shard0-2026-07-05-12-01-31',
+    launch_id='shard0-2026-07-05-13-08-12',
     sweep_id=None,
     run_id='hier-L2048-lr3.2e-04'
 )
