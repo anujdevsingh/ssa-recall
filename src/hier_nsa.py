@@ -59,11 +59,15 @@ def _block_pool(x, block):
 
 
 def _gather_blocks(src, blk_idx):
-    """src:(B,h,N,d), blk_idx:(B,h,L,M) block ids -> (B,h,L,M,d). Invalid ids must be pre-clamped."""
+    """src:(B,h,N,d), blk_idx:(B,h,L,M) block ids -> (B,h,L,M,d). Invalid ids must be pre-clamped.
+
+    Gathers on flattened (L*M) indices against src directly. Do NOT expand src to
+    (B,h,L,N,d) first: gather's backward allocates a zeros tensor of the FULL input
+    shape, which is O(L*N*d) — a 32GiB alloc at L2048/batch16 (OOM'd the T4)."""
     B, h, N, d = src.shape
     L, M = blk_idx.shape[2], blk_idx.shape[3]
-    idx = blk_idx.clamp(0, N - 1).unsqueeze(-1).expand(B, h, L, M, d)
-    return src.unsqueeze(2).expand(B, h, L, N, d).gather(3, idx)
+    idx = blk_idx.clamp(0, N - 1).reshape(B, h, L * M, 1).expand(B, h, L * M, d)
+    return src.gather(2, idx).reshape(B, h, L, M, d)
 
 
 class HierSparseAttention(nn.Module):
