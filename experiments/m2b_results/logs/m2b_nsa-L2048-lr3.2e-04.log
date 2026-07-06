@@ -92,30 +92,31 @@ TrainConfig(
     learning_rate=0.00031622776601683794,
     weight_decay=0.1,
     seed=123,
-    launch_id='shard0-2026-07-06-06-45-37',
+    launch_id='shard0-2026-07-06-07-25-50',
     sweep_id=None,
     run_id='nsa-L2048-lr3.2e-04'
 )
-Generating dataset...
-Saving dataset to on-disk cache at /content/zoology_cache/data_8ecc09b4c50ac8ca5836ebaf106bcab0.pt...
-Generating dataset...
-Saving dataset to on-disk cache at /content/zoology_cache/data_00defc9088f83bd59f250f60fc70678a.pt...
-Train Epoch 0/100:   0%|          | 0/1250 [00:00<?, ?it/s]Train Epoch 0/100:   0%|          | 0/1250 [00:01<?, ?it/s]
 Traceback (most recent call last):
   File "/kaggle/working/ssa-recall/experiments/m2b_hier_frontier.py", line 130, in <module>
     train(config)
-  File "/kaggle/working/zoology/zoology/train.py", line 261, in train
-    task.fit()
-  File "/kaggle/working/zoology/zoology/train.py", line 194, in fit
-    self.train_epoch(epoch_idx)
-  File "/kaggle/working/zoology/zoology/train.py", line 141, in train_epoch
-    loss.backward()
-  File "/usr/local/lib/python3.12/dist-packages/torch/_tensor.py", line 630, in backward
-    torch.autograd.backward(
-  File "/usr/local/lib/python3.12/dist-packages/torch/autograd/__init__.py", line 364, in backward
-    _engine_run_backward(
-  File "/usr/local/lib/python3.12/dist-packages/torch/autograd/graph.py", line 865, in _engine_run_backward
-    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 32.00 GiB. GPU 0 has a total capacity of 14.56 GiB of which 8.26 GiB is free. Including non-PyTorch memory, this process has 6.30 GiB memory in use. Of the allocated memory 6.08 GiB is allocated by PyTorch, and 94.93 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+  File "/kaggle/working/zoology/zoology/train.py", line 241, in train
+    model = LanguageModel(config.model)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/kaggle/working/zoology/zoology/model.py", line 310, in __init__
+    self.backbone = LMBackbone(config=config)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/kaggle/working/zoology/zoology/model.py", line 243, in __init__
+    block_cls(config=config, layer_idx=i)
+  File "/kaggle/working/zoology/zoology/model.py", line 190, in __init__
+    self.sequence_mixer = config.sequence_mixer.instantiate(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/kaggle/working/zoology/zoology/config.py", line 65, in instantiate
+    return import_from_str(self.name)(**kwargs, **self.kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/kaggle/working/zoology/zoology/utils.py", line 18, in import_from_str
+    module = __import__(module_name, fromlist=[obj_name])
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/kaggle/working/zoology/zoology/mixers/deepseek_nsa.py", line 241
+    if not self.query_heads_share_selected_kv:
+IndentationError: unexpected indent
 [FAIL] nsa-L2048-lr3.2e-04 exited 1 (OOM or crash) — continuing
