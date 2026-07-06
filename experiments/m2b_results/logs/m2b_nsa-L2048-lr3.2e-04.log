@@ -92,7 +92,7 @@ TrainConfig(
     learning_rate=0.00031622776601683794,
     weight_decay=0.1,
     seed=123,
-    launch_id='shard0-2026-07-06-06-05-18',
+    launch_id='shard0-2026-07-06-06-45-37',
     sweep_id=None,
     run_id='nsa-L2048-lr3.2e-04'
 )
