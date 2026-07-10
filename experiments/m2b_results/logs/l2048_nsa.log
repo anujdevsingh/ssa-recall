@@ -1,0 +1,29 @@
+[cost] L=  128  nblk=   8  g=  3  hier_pairs/q=   9  vs  nsa_pairs/q=   8  (0.9x cheaper)
+[cost] L=  128  nblk=   8  g=  3  hier_pairs/q=   9  vs  nsa_pairs/q=   8  (0.9x cheaper)
+[cost] L=  128  nblk=   8  g=  3  hier_pairs/q=   9  vs  nsa_pairs/q=   8  (0.9x cheaper)
+[cost] L=  512  nblk=  32  g=  6  hier_pairs/q=  18  vs  nsa_pairs/q=  32  (1.8x cheaper)
+[cost] L=  512  nblk=  32  g=  6  hier_pairs/q=  18  vs  nsa_pairs/q=  32  (1.8x cheaper)
+[cost] L=  512  nblk=  32  g=  6  hier_pairs/q=  18  vs  nsa_pairs/q=  32  (1.8x cheaper)
+[cost] L= 2048  nblk= 128  g= 11  hier_pairs/q=  34  vs  nsa_pairs/q= 128  (3.8x cheaper)
+[cost] L= 2048  nblk= 128  g= 11  hier_pairs/q=  34  vs  nsa_pairs/q= 128  (3.8x cheaper)
+[cost] L= 2048  nblk= 128  g= 11  hier_pairs/q=  34  vs  nsa_pairs/q= 128  (3.8x cheaper)
+[shard] 0/1 only=nsa-L2048-lr3.2e-04 -> running 1 configs on this process
+[cost] L=  128  nblk=   8  g=  3  hier_pairs/q=   9  vs  nsa_pairs/q=   8  (0.9x cheaper)
+[cost] L=  128  nblk=   8  g=  3  hier_pairs/q=   9  vs  nsa_pairs/q=   8  (0.9x cheaper)
+[cost] L=  128  nblk=   8  g=  3  hier_pairs/q=   9  vs  nsa_pairs/q=   8  (0.9x cheaper)
+[cost] L=  512  nblk=  32  g=  6  hier_pairs/q=  18  vs  nsa_pairs/q=  32  (1.8x cheaper)
+[cost] L=  512  nblk=  32  g=  6  hier_pairs/q=  18  vs  nsa_pairs/q=  32  (1.8x cheaper)
+[cost] L=  512  nblk=  32  g=  6  hier_pairs/q=  18  vs  nsa_pairs/q=  32  (1.8x cheaper)
+[cost] L= 2048  nblk= 128  g= 11  hier_pairs/q=  34  vs  nsa_pairs/q= 128  (3.8x cheaper)
+[cost] L= 2048  nblk= 128  g= 11  hier_pairs/q=  34  vs  nsa_pairs/q= 128  (3.8x cheaper)
+[cost] L= 2048  nblk= 128  g= 11  hier_pairs/q=  34  vs  nsa_pairs/q= 128  (3.8x cheaper)
+[shard] 0/1 only=nsa-L2048-lr3.2e-04 -> running 1 configs on this process
+Traceback (most recent call last):
+  File "/home/shadeform/ssa-recall/experiments/m2b_hier_frontier.py", line 127, in <module>
+    from zoology.train import train
+  File "/home/shadeform/zoology/zoology/train.py", line 17, in <module>
+    from zoology.model import LanguageModel, ContinuousInputModel
+  File "/home/shadeform/zoology/zoology/model.py", line 6, in <module>
+    from torchvision.ops import StochasticDepth
+ModuleNotFoundError: No module named 'torchvision'
+[FAIL] nsa-L2048-lr3.2e-04 exited 1 (OOM or crash) — continuing
