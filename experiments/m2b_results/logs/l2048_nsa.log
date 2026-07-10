@@ -1,3 +1,4 @@
+nohup: ignoring input
 [cost] L=  128  nblk=   8  g=  3  hier_pairs/q=   9  vs  nsa_pairs/q=   8  (0.9x cheaper)
 [cost] L=  128  nblk=   8  g=  3  hier_pairs/q=   9  vs  nsa_pairs/q=   8  (0.9x cheaper)
 [cost] L=  128  nblk=   8  g=  3  hier_pairs/q=   9  vs  nsa_pairs/q=   8  (0.9x cheaper)
@@ -8,22 +9,82 @@
 [cost] L= 2048  nblk= 128  g= 11  hier_pairs/q=  34  vs  nsa_pairs/q= 128  (3.8x cheaper)
 [cost] L= 2048  nblk= 128  g= 11  hier_pairs/q=  34  vs  nsa_pairs/q= 128  (3.8x cheaper)
 [shard] 0/1 only=nsa-L2048-lr3.2e-04 -> running 1 configs on this process
-[cost] L=  128  nblk=   8  g=  3  hier_pairs/q=   9  vs  nsa_pairs/q=   8  (0.9x cheaper)
-[cost] L=  128  nblk=   8  g=  3  hier_pairs/q=   9  vs  nsa_pairs/q=   8  (0.9x cheaper)
-[cost] L=  128  nblk=   8  g=  3  hier_pairs/q=   9  vs  nsa_pairs/q=   8  (0.9x cheaper)
-[cost] L=  512  nblk=  32  g=  6  hier_pairs/q=  18  vs  nsa_pairs/q=  32  (1.8x cheaper)
-[cost] L=  512  nblk=  32  g=  6  hier_pairs/q=  18  vs  nsa_pairs/q=  32  (1.8x cheaper)
-[cost] L=  512  nblk=  32  g=  6  hier_pairs/q=  18  vs  nsa_pairs/q=  32  (1.8x cheaper)
-[cost] L= 2048  nblk= 128  g= 11  hier_pairs/q=  34  vs  nsa_pairs/q= 128  (3.8x cheaper)
-[cost] L= 2048  nblk= 128  g= 11  hier_pairs/q=  34  vs  nsa_pairs/q= 128  (3.8x cheaper)
-[cost] L= 2048  nblk= 128  g= 11  hier_pairs/q=  34  vs  nsa_pairs/q= 128  (3.8x cheaper)
-[shard] 0/1 only=nsa-L2048-lr3.2e-04 -> running 1 configs on this process
+No logger specified, skipping...
+TrainConfig(
+    data=DataConfig(
+        train_configs=[MQARConfig(vocab_size=8192, num_examples=20000, input_seq_len=2048, name='multiquery_ar', power_a=0.01, num_kv_pairs=128, random_non_queries=True, include_slices=True)],
+        test_configs=[MQARConfig(vocab_size=8192, num_examples=2000, input_seq_len=2048, name='multiquery_ar', power_a=0.01, num_kv_pairs=128, random_non_queries=True, include_slices=True)],
+        batch_size=16,
+        seed=123,
+        cache_dir='/content/zoology_cache',
+        force_cache=False,
+        num_passes=1
+    ),
+    model=ModelConfig(
+        sequence_mixer=ModuleConfig(
+            name='zoology.mixers.deepseek_nsa.SparseAttention',
+            kwargs={'num_heads': 4, 'sliding_window_size': 32, 'compress_block_size': 16, 'selection_block_size': 16, 'num_selected_blocks': 4, 'causal': True}
+        ),
+        state_mixer=ModuleConfig(name='zoology.mixers.mlp.MLP', kwargs={'hidden_mult': 4}),
+        d_model=128,
+        n_layers=2,
+        multiplier=1,
+        max_position_embeddings=2048,
+        learnable_word_embeddings=True,
+        embedding_init_type='default',
+        vocab_size=8192,
+        resid_dropout=0.0,
+        embed_dropout=0.1,
+        drop_path=0.0,
+        layer_norm_epsilon=1e-05,
+        pad_vocab_size_multiple=1,
+        block_type='TransformerBlock',
+        name='default'
+    ),
+    logger=LoggerConfig(project_name=None, entity=None),
+    max_epochs=70,
+    loss_type='ce',
+    input_type='discrete',
+    early_stopping_metric='valid/accuracy',
+    early_stopping_threshold=0.98,
+    slice_keys=[],
+    learning_rate=0.00031622776601683794,
+    weight_decay=0.1,
+    seed=123,
+    launch_id='shard0-2026-07-10-10-03-44',
+    sweep_id=None,
+    run_id='nsa-L2048-lr3.2e-04'
+)
+Loading data from on-disk cache at /content/zoology_cache/data_8ecc09b4c50ac8ca5836ebaf106bcab0.pt...
+Loading data from on-disk cache at /content/zoology_cache/data_00defc9088f83bd59f250f60fc70678a.pt...
+Train Epoch 0/70:   0%|          | 0/1250 [00:00<?, ?it/s][W710 10:03:50.565317235 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 4259840, total: 47665709056).
+[W710 10:03:51.165203079 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 4259840, total: 47665709056).
+Train Epoch 0/70:   0%|          | 0/1250 [00:02<?, ?it/s]
 Traceback (most recent call last):
-  File "/home/shadeform/ssa-recall/experiments/m2b_hier_frontier.py", line 127, in <module>
-    from zoology.train import train
-  File "/home/shadeform/zoology/zoology/train.py", line 17, in <module>
-    from zoology.model import LanguageModel, ContinuousInputModel
-  File "/home/shadeform/zoology/zoology/model.py", line 6, in <module>
-    from torchvision.ops import StochasticDepth
-ModuleNotFoundError: No module named 'torchvision'
+  File "/home/shadeform/ssa-recall/experiments/m2b_hier_frontier.py", line 130, in <module>
+    train(config)
+  File "/home/shadeform/zoology/zoology/train.py", line 261, in train
+    task.fit()
+  File "/home/shadeform/zoology/zoology/train.py", line 194, in fit
+    self.train_epoch(epoch_idx)
+  File "/home/shadeform/zoology/zoology/train.py", line 141, in train_epoch
+    loss.backward()
+  File "/home/shadeform/venv/lib/python3.12/site-packages/torch/_tensor.py", line 623, in backward
+    torch.autograd.backward(
+  File "/home/shadeform/venv/lib/python3.12/site-packages/torch/autograd/__init__.py", line 395, in backward
+    _engine_run_backward(
+  File "/home/shadeform/venv/lib/python3.12/site-packages/torch/autograd/graph.py", line 979, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 32.00 GiB. GPU 0 has a total capacity of 44.39 GiB of which 25.06 GiB is free. Process 54712 has 12.65 GiB memory in use. Including non-PyTorch memory, this process has 6.67 GiB memory in use. Of the allocated memory 6.08 GiB is allocated by PyTorch, and 93.93 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)
+[cost] L=  128  nblk=   8  g=  3  hier_pairs/q=   9  vs  nsa_pairs/q=   8  (0.9x cheaper)
+[cost] L=  128  nblk=   8  g=  3  hier_pairs/q=   9  vs  nsa_pairs/q=   8  (0.9x cheaper)
+[cost] L=  128  nblk=   8  g=  3  hier_pairs/q=   9  vs  nsa_pairs/q=   8  (0.9x cheaper)
+[cost] L=  512  nblk=  32  g=  6  hier_pairs/q=  18  vs  nsa_pairs/q=  32  (1.8x cheaper)
+[cost] L=  512  nblk=  32  g=  6  hier_pairs/q=  18  vs  nsa_pairs/q=  32  (1.8x cheaper)
+[cost] L=  512  nblk=  32  g=  6  hier_pairs/q=  18  vs  nsa_pairs/q=  32  (1.8x cheaper)
+[cost] L= 2048  nblk= 128  g= 11  hier_pairs/q=  34  vs  nsa_pairs/q= 128  (3.8x cheaper)
+[cost] L= 2048  nblk= 128  g= 11  hier_pairs/q=  34  vs  nsa_pairs/q= 128  (3.8x cheaper)
+[cost] L= 2048  nblk= 128  g= 11  hier_pairs/q=  34  vs  nsa_pairs/q= 128  (3.8x cheaper)
+[shard] 0/1 only=nsa-L2048-lr3.2e-04 -> running 1 configs on this process
 [FAIL] nsa-L2048-lr3.2e-04 exited 1 (OOM or crash) — continuing
