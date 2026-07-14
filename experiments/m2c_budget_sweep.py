@@ -48,11 +48,16 @@ nblk = math.ceil(SEQ_LEN / CB)                    # 128
 g = max(2, round(math.sqrt(nblk)))                # 11 — same per-length rule as m2b
 nsup = math.ceil(nblk / g)                        # 12
 
-# (S1, K_SEL, batch, epochs). Epochs track a ~150k-update budget (plateau needs ~112k):
-# batch 8 = 2500 steps/ep -> 60 ep; batch 4 = 5000 steps/ep -> 30 ep.
-# s12-k16 runs batch 4: at batch 8 its fine-attention gather (16 blocks/query) OOM'd the
-# 14.56GiB T4 at train step 0 (session 2026-07-14). EPOCHS env still overrides all configs.
-BUDGETS = [(2, 4, 8, 60), (4, 4, 8, 60), (12, 4, 8, 60), (4, 8, 8, 60), (12, 16, 4, 30)]
+# (S1, K_SEL, micro_batch, accum, epochs). micro_batch*accum == 16 for EVERY config:
+# hier-L2048 does NOT learn at plain batch 8 + lr 3.2e-4 (flat 0.005 at ep44 = 110k updates,
+# session 2026-07-14) — the LR was tuned at batch 16 and L2048 is razor LR-sensitive. Gradient
+# accumulation (see patch_zoology_accum.py, applied to zoology pinned at 1ad20d1) restores exact
+# batch-16 dynamics (1250 optimizer steps/ep) at micro-batch memory, so every budget point fits
+# the T4: micro 8x2 for most, micro 4x4 for s12-k16 (its gathers OOM'd micro-8). Epoch counts are
+# then directly comparable to M2b's batch-16 reference (jump ep31-33, 0.80 by ep56). s12-k16 caps
+# at 50 ep to respect the 12h wall. EPOCHS env still overrides all configs.
+BUDGETS = [(2, 4, 8, 2, 60), (4, 4, 8, 2, 60), (12, 4, 8, 2, 60),
+           (4, 8, 8, 2, 60), (12, 16, 4, 4, 50)]
 
 train_data = [MQARConfig(num_examples=20_000, vocab_size=vocab_size,
                          input_seq_len=SEQ_LEN, num_kv_pairs=NUM_KV)]
@@ -60,11 +65,12 @@ test_data = [MQARConfig(num_examples=2_000, vocab_size=vocab_size,
                         input_seq_len=SEQ_LEN, num_kv_pairs=NUM_KV)]
 
 configs = []
-for s1, k_sel, batch, epochs in BUDGETS:
+ACCUM = {}   # run_id -> grad-accum factor, passed to the training child via GRAD_ACCUM env
+for s1, k_sel, batch, accum, epochs in BUDGETS:
     epochs = int(os.environ["EPOCHS"]) if os.environ.get("EPOCHS") else epochs
     pairs = nsup + s1 * g
     print(f"[cost] s1={s1:>2} k_sel={k_sel:>2}  coarse_pairs/q={pairs:>4}  "
-          f"(nsa=128)  exact_tokens={k_sel * CB + 32}  batch={batch} epochs={epochs}")
+          f"(nsa=128)  exact_tokens={k_sel * CB + 32}  batch={batch}x{accum} epochs={epochs}")
     mixer = ModuleConfig(name="hier_nsa.HierSparseAttention",
                          kwargs={"num_heads": 4, "sliding_window_size": 32,
                                  "compress_block_size": CB, "selection_block_size": CB,
@@ -79,6 +85,7 @@ for s1, k_sel, batch, epochs in BUDGETS:
         early_stopping_metric="valid/accuracy", early_stopping_threshold=EARLY_STOP,
         run_id=f"hier-L{SEQ_LEN}-s{s1}-k{k_sel}",
     ))
+    ACCUM[configs[-1].run_id] = accum
 
 _S = int(os.environ.get("SHARD", 0))
 _N = int(os.environ.get("NSHARDS", 1))
@@ -106,7 +113,8 @@ if __name__ == "__main__":
     launch_id = f"m2c-{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}"
     for config in configs:
         env = {**os.environ, "SUBPROC": "1", "ONLY": config.run_id,
-               "LAUNCH_ID": launch_id, "SHARD": "0", "NSHARDS": "1"}
+               "LAUNCH_ID": launch_id, "SHARD": "0", "NSHARDS": "1",
+               "GRAD_ACCUM": str(ACCUM[config.run_id])}
         r = subprocess.run([sys.executable, os.path.abspath(__file__)], env=env)
         if r.returncode != 0:
             print(f"[FAIL] {config.run_id} exited {r.returncode} (OOM or crash) — continuing")
