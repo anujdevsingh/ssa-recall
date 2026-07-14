@@ -1,0 +1,278 @@
+[cost] s1= 2 k_sel= 4  coarse_pairs/q=  34  (nsa=128)  exact_tokens=96
+[cost] s1= 4 k_sel= 4  coarse_pairs/q=  56  (nsa=128)  exact_tokens=96
+[cost] s1=12 k_sel= 4  coarse_pairs/q= 144  (nsa=128)  exact_tokens=96
+[cost] s1= 4 k_sel= 8  coarse_pairs/q=  56  (nsa=128)  exact_tokens=160
+[cost] s1=12 k_sel=16  coarse_pairs/q= 144  (nsa=128)  exact_tokens=288
+[shard] 0/1 only=hier-L2048-s2-k4,hier-L2048-s12-k16 -> running 2 configs on this process
+[cost] s1= 2 k_sel= 4  coarse_pairs/q=  34  (nsa=128)  exact_tokens=96
+[cost] s1= 4 k_sel= 4  coarse_pairs/q=  56  (nsa=128)  exact_tokens=96
+[cost] s1=12 k_sel= 4  coarse_pairs/q= 144  (nsa=128)  exact_tokens=96
+[cost] s1= 4 k_sel= 8  coarse_pairs/q=  56  (nsa=128)  exact_tokens=160
+[cost] s1=12 k_sel=16  coarse_pairs/q= 144  (nsa=128)  exact_tokens=288
+[shard] 0/1 only=hier-L2048-s2-k4 -> running 1 configs on this process
+No logger specified, skipping...
+TrainConfig(
+    data=DataConfig(
+        train_configs=[
+            MQARConfig(
+                vocab_size=8192,
+                num_examples=20000,
+                input_seq_len=2048,
+                name='multiquery_ar',
+                power_a=0.01,
+                num_kv_pairs=128,
+                random_non_queries=True,
+                include_slices=True
+            )
+        ],
+        test_configs=[
+            MQARConfig(
+                vocab_size=8192,
+                num_examples=2000,
+                input_seq_len=2048,
+                name='multiquery_ar',
+                power_a=0.01,
+                num_kv_pairs=128,
+                random_non_queries=True,
+                include_slices=True
+            )
+        ],
+        batch_size=8,
+        seed=123,
+        cache_dir='/content/zoology_cache',
+        force_cache=False,
+        num_passes=1
+    ),
+    model=ModelConfig(
+        sequence_mixer=ModuleConfig(
+            name='hier_nsa.HierSparseAttention',
+            kwargs={
+                'num_heads': 4,
+                'sliding_window_size': 32,
+                'compress_block_size': 16,
+                'selection_block_size': 16,
+                'num_selected_blocks': 4,
+                'superblock_group': 11,
+                'num_selected_superblocks': 2,
+                'causal': True
+            }
+        ),
+        state_mixer=ModuleConfig(
+            name='zoology.mixers.mlp.MLP',
+            kwargs={'hidden_mult': 4}
+        ),
+        d_model=128,
+        n_layers=2,
+        multiplier=1,
+        max_position_embeddings=2048,
+        learnable_word_embeddings=True,
+        embedding_init_type='default',
+        vocab_size=8192,
+        resid_dropout=0.0,
+        embed_dropout=0.1,
+        drop_path=0.0,
+        layer_norm_epsilon=1e-05,
+        pad_vocab_size_multiple=1,
+        block_type='TransformerBlock',
+        name='default'
+    ),
+    logger=LoggerConfig(project_name=None, entity=None),
+    max_epochs=60,
+    loss_type='ce',
+    input_type='discrete',
+    early_stopping_metric='valid/accuracy',
+    early_stopping_threshold=0.98,
+    slice_keys=[],
+    learning_rate=0.00032,
+    weight_decay=0.1,
+    seed=123,
+    launch_id='m2c-2026-07-14-08-16-27',
+    sweep_id=None,
+    run_id='hier-L2048-s2-k4'
+)
+/usr/local/lib/python3.12/dist-packages/torch/cuda/__init__.py:435: UserWarning: 
+    Found GPU0 Tesla P100-PCIE-16GB which is of cuda capability 6.0.
+    Minimum and Maximum cuda capability supported by this version of PyTorch is
+    (7.0) - (12.0)
+    
+  queued_call()
+/usr/local/lib/python3.12/dist-packages/torch/cuda/__init__.py:435: UserWarning: 
+    Please install PyTorch with a following CUDA
+    configurations:  12.6 following instructions at
+    https://pytorch.org/get-started/locally/
+    
+  queued_call()
+/usr/local/lib/python3.12/dist-packages/torch/cuda/__init__.py:435: UserWarning: 
+Tesla P100-PCIE-16GB with CUDA capability sm_60 is not compatible with the current PyTorch installation.
+The current PyTorch install supports CUDA capabilities sm_70 sm_75 sm_80 sm_86 sm_90 sm_100 sm_120.
+If you want to use the Tesla P100-PCIE-16GB GPU with PyTorch, please check the instructions at https://pytorch.org/get-started/locally/
+
+  queued_call()
+Traceback (most recent call last):
+  File "/root/ssa-recall/experiments/m2c_budget_sweep.py", line 100, in <module>
+    train(config)
+  File "/root/zoology/zoology/train.py", line 241, in train
+    model = LanguageModel(config.model)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/zoology/zoology/model.py", line 310, in __init__
+    self.backbone = LMBackbone(config=config)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/zoology/zoology/model.py", line 222, in __init__
+    self.embeddings = TokenEmbeddings(
+                      ^^^^^^^^^^^^^^^^
+  File "/root/zoology/zoology/model.py", line 49, in __init__
+    self.word_embeddings = nn.Embedding(
+                           ^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/sparse.py", line 171, in __init__
+    self.reset_parameters()
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/sparse.py", line 182, in reset_parameters
+    init.normal_(self.weight)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/init.py", line 265, in normal_
+    return _no_grad_normal_(tensor, mean, std, generator)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/init.py", line 83, in _no_grad_normal_
+    return tensor.normal_(mean, std, generator=generator)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.AcceleratorError: CUDA error: no kernel image is available for execution on the device
+Search for `cudaErrorNoKernelImageForDevice' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+
+[FAIL] hier-L2048-s2-k4 exited 1 (OOM or crash) — continuing
+[cost] s1= 2 k_sel= 4  coarse_pairs/q=  34  (nsa=128)  exact_tokens=96
+[cost] s1= 4 k_sel= 4  coarse_pairs/q=  56  (nsa=128)  exact_tokens=96
+[cost] s1=12 k_sel= 4  coarse_pairs/q= 144  (nsa=128)  exact_tokens=96
+[cost] s1= 4 k_sel= 8  coarse_pairs/q=  56  (nsa=128)  exact_tokens=160
+[cost] s1=12 k_sel=16  coarse_pairs/q= 144  (nsa=128)  exact_tokens=288
+[shard] 0/1 only=hier-L2048-s12-k16 -> running 1 configs on this process
+No logger specified, skipping...
+TrainConfig(
+    data=DataConfig(
+        train_configs=[
+            MQARConfig(
+                vocab_size=8192,
+                num_examples=20000,
+                input_seq_len=2048,
+                name='multiquery_ar',
+                power_a=0.01,
+                num_kv_pairs=128,
+                random_non_queries=True,
+                include_slices=True
+            )
+        ],
+        test_configs=[
+            MQARConfig(
+                vocab_size=8192,
+                num_examples=2000,
+                input_seq_len=2048,
+                name='multiquery_ar',
+                power_a=0.01,
+                num_kv_pairs=128,
+                random_non_queries=True,
+                include_slices=True
+            )
+        ],
+        batch_size=8,
+        seed=123,
+        cache_dir='/content/zoology_cache',
+        force_cache=False,
+        num_passes=1
+    ),
+    model=ModelConfig(
+        sequence_mixer=ModuleConfig(
+            name='hier_nsa.HierSparseAttention',
+            kwargs={
+                'num_heads': 4,
+                'sliding_window_size': 32,
+                'compress_block_size': 16,
+                'selection_block_size': 16,
+                'num_selected_blocks': 16,
+                'superblock_group': 11,
+                'num_selected_superblocks': 12,
+                'causal': True
+            }
+        ),
+        state_mixer=ModuleConfig(
+            name='zoology.mixers.mlp.MLP',
+            kwargs={'hidden_mult': 4}
+        ),
+        d_model=128,
+        n_layers=2,
+        multiplier=1,
+        max_position_embeddings=2048,
+        learnable_word_embeddings=True,
+        embedding_init_type='default',
+        vocab_size=8192,
+        resid_dropout=0.0,
+        embed_dropout=0.1,
+        drop_path=0.0,
+        layer_norm_epsilon=1e-05,
+        pad_vocab_size_multiple=1,
+        block_type='TransformerBlock',
+        name='default'
+    ),
+    logger=LoggerConfig(project_name=None, entity=None),
+    max_epochs=60,
+    loss_type='ce',
+    input_type='discrete',
+    early_stopping_metric='valid/accuracy',
+    early_stopping_threshold=0.98,
+    slice_keys=[],
+    learning_rate=0.00032,
+    weight_decay=0.1,
+    seed=123,
+    launch_id='m2c-2026-07-14-08-16-27',
+    sweep_id=None,
+    run_id='hier-L2048-s12-k16'
+)
+/usr/local/lib/python3.12/dist-packages/torch/cuda/__init__.py:435: UserWarning: 
+    Found GPU0 Tesla P100-PCIE-16GB which is of cuda capability 6.0.
+    Minimum and Maximum cuda capability supported by this version of PyTorch is
+    (7.0) - (12.0)
+    
+  queued_call()
+/usr/local/lib/python3.12/dist-packages/torch/cuda/__init__.py:435: UserWarning: 
+    Please install PyTorch with a following CUDA
+    configurations:  12.6 following instructions at
+    https://pytorch.org/get-started/locally/
+    
+  queued_call()
+/usr/local/lib/python3.12/dist-packages/torch/cuda/__init__.py:435: UserWarning: 
+Tesla P100-PCIE-16GB with CUDA capability sm_60 is not compatible with the current PyTorch installation.
+The current PyTorch install supports CUDA capabilities sm_70 sm_75 sm_80 sm_86 sm_90 sm_100 sm_120.
+If you want to use the Tesla P100-PCIE-16GB GPU with PyTorch, please check the instructions at https://pytorch.org/get-started/locally/
+
+  queued_call()
+Traceback (most recent call last):
+  File "/root/ssa-recall/experiments/m2c_budget_sweep.py", line 100, in <module>
+    train(config)
+  File "/root/zoology/zoology/train.py", line 241, in train
+    model = LanguageModel(config.model)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/zoology/zoology/model.py", line 310, in __init__
+    self.backbone = LMBackbone(config=config)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/zoology/zoology/model.py", line 222, in __init__
+    self.embeddings = TokenEmbeddings(
+                      ^^^^^^^^^^^^^^^^
+  File "/root/zoology/zoology/model.py", line 49, in __init__
+    self.word_embeddings = nn.Embedding(
+                           ^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/sparse.py", line 171, in __init__
+    self.reset_parameters()
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/sparse.py", line 182, in reset_parameters
+    init.normal_(self.weight)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/init.py", line 265, in normal_
+    return _no_grad_normal_(tensor, mean, std, generator)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/init.py", line 83, in _no_grad_normal_
+    return tensor.normal_(mean, std, generator=generator)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.AcceleratorError: CUDA error: no kernel image is available for execution on the device
+Search for `cudaErrorNoKernelImageForDevice' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+
+[FAIL] hier-L2048-s12-k16 exited 1 (OOM or crash) — continuing
