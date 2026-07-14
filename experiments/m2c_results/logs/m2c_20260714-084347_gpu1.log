@@ -1,0 +1,154 @@
+[cost] s1= 2 k_sel= 4  coarse_pairs/q=  34  (nsa=128)  exact_tokens=96
+[cost] s1= 4 k_sel= 4  coarse_pairs/q=  56  (nsa=128)  exact_tokens=96
+[cost] s1=12 k_sel= 4  coarse_pairs/q= 144  (nsa=128)  exact_tokens=96
+[cost] s1= 4 k_sel= 8  coarse_pairs/q=  56  (nsa=128)  exact_tokens=160
+[cost] s1=12 k_sel=16  coarse_pairs/q= 144  (nsa=128)  exact_tokens=288
+[shard] 0/1 only=hier-L2048-s12-k16 -> running 1 configs on this process
+[cost] s1= 2 k_sel= 4  coarse_pairs/q=  34  (nsa=128)  exact_tokens=96
+[cost] s1= 4 k_sel= 4  coarse_pairs/q=  56  (nsa=128)  exact_tokens=96
+[cost] s1=12 k_sel= 4  coarse_pairs/q= 144  (nsa=128)  exact_tokens=96
+[cost] s1= 4 k_sel= 8  coarse_pairs/q=  56  (nsa=128)  exact_tokens=160
+[cost] s1=12 k_sel=16  coarse_pairs/q= 144  (nsa=128)  exact_tokens=288
+[shard] 0/1 only=hier-L2048-s12-k16 -> running 1 configs on this process
+No logger specified, skipping...
+TrainConfig(
+    data=DataConfig(
+        train_configs=[
+            MQARConfig(
+                vocab_size=8192,
+                num_examples=20000,
+                input_seq_len=2048,
+                name='multiquery_ar',
+                power_a=0.01,
+                num_kv_pairs=128,
+                random_non_queries=True,
+                include_slices=True
+            )
+        ],
+        test_configs=[
+            MQARConfig(
+                vocab_size=8192,
+                num_examples=2000,
+                input_seq_len=2048,
+                name='multiquery_ar',
+                power_a=0.01,
+                num_kv_pairs=128,
+                random_non_queries=True,
+                include_slices=True
+            )
+        ],
+        batch_size=8,
+        seed=123,
+        cache_dir='/content/zoology_cache',
+        force_cache=False,
+        num_passes=1
+    ),
+    model=ModelConfig(
+        sequence_mixer=ModuleConfig(
+            name='hier_nsa.HierSparseAttention',
+            kwargs={
+                'num_heads': 4,
+                'sliding_window_size': 32,
+                'compress_block_size': 16,
+                'selection_block_size': 16,
+                'num_selected_blocks': 16,
+                'superblock_group': 11,
+                'num_selected_superblocks': 12,
+                'causal': True
+            }
+        ),
+        state_mixer=ModuleConfig(
+            name='zoology.mixers.mlp.MLP',
+            kwargs={'hidden_mult': 4}
+        ),
+        d_model=128,
+        n_layers=2,
+        multiplier=1,
+        max_position_embeddings=2048,
+        learnable_word_embeddings=True,
+        embedding_init_type='default',
+        vocab_size=8192,
+        resid_dropout=0.0,
+        embed_dropout=0.1,
+        drop_path=0.0,
+        layer_norm_epsilon=1e-05,
+        pad_vocab_size_multiple=1,
+        block_type='TransformerBlock',
+        name='default'
+    ),
+    logger=LoggerConfig(project_name=None, entity=None),
+    max_epochs=60,
+    loss_type='ce',
+    input_type='discrete',
+    early_stopping_metric='valid/accuracy',
+    early_stopping_threshold=0.98,
+    slice_keys=[],
+    learning_rate=0.00032,
+    weight_decay=0.1,
+    seed=123,
+    launch_id='m2c-2026-07-14-08-43-51',
+    sweep_id=None,
+    run_id='hier-L2048-s12-k16'
+)
+Generating dataset...
+Saving dataset to on-disk cache at /content/zoology_cache/data_8ecc09b4c50ac8ca5836ebaf106bcab0.pt...
+Generating dataset...
+Saving dataset to on-disk cache at /content/zoology_cache/data_00defc9088f83bd59f250f60fc70678a.pt...
+Train Epoch 0/60:   0%|          | 0/2500 [00:00<?, ?it/s]Train Epoch 0/60:   0%|          | 0/2500 [00:00<?, ?it/s]
+Traceback (most recent call last):
+  File "/root/ssa-recall/experiments/m2c_budget_sweep.py", line 100, in <module>
+    train(config)
+  File "/root/zoology/zoology/train.py", line 261, in train
+    task.fit()
+  File "/root/zoology/zoology/train.py", line 194, in fit
+    self.train_epoch(epoch_idx)
+  File "/root/zoology/zoology/train.py", line 129, in train_epoch
+    loss, preds = self.compute_loss(inputs, targets)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/zoology/zoology/train.py", line 84, in compute_loss
+    logits = self.model(inputs, return_embeddings=False)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/zoology/zoology/model.py", line 323, in forward
+    hidden_states = self.backbone(input_ids, position_ids=position_ids)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/zoology/zoology/model.py", line 266, in forward
+    hidden_states = self.layers_forward(hidden_states)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/zoology/zoology/model.py", line 255, in layers_forward
+    hidden_states, residual = layer(hidden_states, residual)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/zoology/zoology/model.py", line 209, in forward
+    hidden_states = self.sequence_mixer(hidden_states)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/ssa-recall/src/hier_nsa.py", line 140, in forward
+    vf = _gather_blocks(v, tok)
+         ^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/ssa-recall/src/hier_nsa.py", line 70, in _gather_blocks
+    return src.gather(2, idx).reshape(B, h, L, M, d)
+           ^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.00 GiB. GPU 0 has a total capacity of 14.56 GiB of which 1.94 GiB is free. Including non-PyTorch memory, this process has 12.62 GiB memory in use. Of the allocated memory 12.47 GiB is allocated by PyTorch, and 25.31 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+[FAIL] hier-L2048-s12-k16 exited 1 (OOM or crash) — continuing
