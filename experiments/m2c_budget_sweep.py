@@ -41,16 +41,18 @@ d_model = 128
 CB = 16
 SEQ_LEN = 2048
 NUM_KV = 128
-BATCH = 8                      # see docstring: batch-8 recipe fits the 12h wall
 LR = 3.2e-4                    # the only LR that works at L512+ (M2b repair sweep)
 EARLY_STOP = 0.98
-MAX_EPOCHS = int(os.environ.get("EPOCHS", 60))   # ~150k updates at batch 8 (plateau needs ~112k)
 
 nblk = math.ceil(SEQ_LEN / CB)                    # 128
 g = max(2, round(math.sqrt(nblk)))                # 11 — same per-length rule as m2b
 nsup = math.ceil(nblk / g)                        # 12
 
-BUDGETS = [(2, 4), (4, 4), (12, 4), (4, 8), (12, 16)]   # (S1, K_SEL)
+# (S1, K_SEL, batch, epochs). Epochs track a ~150k-update budget (plateau needs ~112k):
+# batch 8 = 2500 steps/ep -> 60 ep; batch 4 = 5000 steps/ep -> 30 ep.
+# s12-k16 runs batch 4: at batch 8 its fine-attention gather (16 blocks/query) OOM'd the
+# 14.56GiB T4 at train step 0 (session 2026-07-14). EPOCHS env still overrides all configs.
+BUDGETS = [(2, 4, 8, 60), (4, 4, 8, 60), (12, 4, 8, 60), (4, 8, 8, 60), (12, 16, 4, 30)]
 
 train_data = [MQARConfig(num_examples=20_000, vocab_size=vocab_size,
                          input_seq_len=SEQ_LEN, num_kv_pairs=NUM_KV)]
@@ -58,10 +60,11 @@ test_data = [MQARConfig(num_examples=2_000, vocab_size=vocab_size,
                         input_seq_len=SEQ_LEN, num_kv_pairs=NUM_KV)]
 
 configs = []
-for s1, k_sel in BUDGETS:
+for s1, k_sel, batch, epochs in BUDGETS:
+    epochs = int(os.environ["EPOCHS"]) if os.environ.get("EPOCHS") else epochs
     pairs = nsup + s1 * g
     print(f"[cost] s1={s1:>2} k_sel={k_sel:>2}  coarse_pairs/q={pairs:>4}  "
-          f"(nsa=128)  exact_tokens={k_sel * CB + 32}")
+          f"(nsa=128)  exact_tokens={k_sel * CB + 32}  batch={batch} epochs={epochs}")
     mixer = ModuleConfig(name="hier_nsa.HierSparseAttention",
                          kwargs={"num_heads": 4, "sliding_window_size": 32,
                                  "compress_block_size": CB, "selection_block_size": CB,
@@ -69,10 +72,10 @@ for s1, k_sel in BUDGETS:
                                  "num_selected_superblocks": s1, "causal": True})
     configs.append(TrainConfig(
         data=DataConfig(train_configs=train_data, test_configs=test_data,
-                        batch_size=BATCH, seed=123, cache_dir="/content/zoology_cache"),
+                        batch_size=batch, seed=123, cache_dir="/content/zoology_cache"),
         model=ModelConfig(vocab_size=vocab_size, max_position_embeddings=SEQ_LEN,
                           d_model=d_model, n_layers=2, sequence_mixer=mixer),
-        max_epochs=MAX_EPOCHS, learning_rate=LR, weight_decay=0.1,
+        max_epochs=epochs, learning_rate=LR, weight_decay=0.1,
         early_stopping_metric="valid/accuracy", early_stopping_threshold=EARLY_STOP,
         run_id=f"hier-L{SEQ_LEN}-s{s1}-k{k_sel}",
     ))
