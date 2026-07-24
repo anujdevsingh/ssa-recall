@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eumnesia Labs — The end of AI amnesia</title>
+<meta name="description" content="Eumnesia Labs builds attention that keeps AI memory exact — and reads only what matters — at any context length.">
+<style>
+  :root{
+    --ink:#0D1219;         /* deep blue-black ground */
+    --surface:#141B26;     /* raised panel */
+    --line:#232D3B;        /* hairlines */
+    --text:#E9EDF2;        /* cool off-white */
+    --muted:#8C97A6;       /* secondary text */
+    --amber:#DFAC4C;       /* the accent: amber preserves */
+    --amber-dim:#8A6A2F;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--ink);color:var(--text);
+    font:400 17px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    animation:page-in .8s ease both;
+  }
+  @keyframes page-in{from{opacity:0}to{opacity:1}}
+  @media (prefers-reduced-motion: reduce){body{animation:none}}
+  .wrap{max-width:720px;margin:0 auto;padding:0 24px}
+  a{color:var(--amber);text-decoration:none}
+  a:hover,a:focus-visible{text-decoration:underline;outline:none}
+  a:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:2px}
+
+  header{padding:28px 0}
+  .mark{
+    font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    letter-spacing:.28em;color:var(--text);
+  }
+  .mark b{color:var(--amber);font-weight:600}
+
+  .hero{padding:96px 0 72px;border-bottom:1px solid var(--line)}
+  h1{
+    font-family:"Iowan Old Style",Palatino,Georgia,"Times New Roman",serif;
+    font-size:clamp(38px,7vw,58px);font-weight:600;line-height:1.12;
+    letter-spacing:-.01em;text-wrap:balance;
+  }
+  .dissolve{
+    background:linear-gradient(90deg,var(--text) 0%,var(--muted) 45%,transparent 96%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .lede{margin-top:26px;font-size:19px;color:var(--muted);max-width:56ch}
+  .lede strong{color:var(--text);font-weight:600}
+
+  section{padding:56px 0;border-bottom:1px solid var(--line)}
+  .eyebrow{
+    font:600 12px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    letter-spacing:.24em;color:var(--amber);margin-bottom:18px;
+  }
+  h2{
+    font-family:"Iowan Old Style",Palatino,Georgia,"Times New Roman",serif;
+    font-size:26px;font-weight:600;line-height:1.3;margin-bottom:14px;text-wrap:balance;
+  }
+  p{max-width:62ch;color:var(--muted)}
+  p + p{margin-top:14px}
+  p strong{color:var(--text);font-weight:600}
+
+  .name-card{
+    margin-top:44px;padding:20px 22px;background:var(--surface);
+    border:1px solid var(--line);border-left:2px solid var(--amber);border-radius:4px;
+    font-size:15px;color:var(--muted);max-width:56ch;
+  }
+  .name-card .gr{color:var(--text);font-style:italic}
+
+  .cta{
+    display:inline-block;margin-top:22px;padding:13px 22px;border-radius:4px;
+    background:var(--amber);color:var(--ink);font-weight:600;font-size:16px;
+  }
+  .cta:hover{background:#EABB5F;text-decoration:none}
+  .aside{margin-top:14px;font-size:14px;color:var(--muted)}
+
+  footer{padding:40px 0 56px}
+  .foot{
+    display:flex;gap:16px;justify-content:space-between;align-items:baseline;flex-wrap:wrap;
+    font-size:14px;color:var(--muted);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="mark">EUMNESIA<b>·</b>LABS</div>
+  </header>
+
+  <main>
+    <div class="hero">
+      <h1>The end of AI <span class="dissolve">amnesia</span>.</h1>
+      <p class="lede"><strong>AI models forget.</strong> We build attention that keeps memory
+      exact — and reads only what matters — at any context length.</p>
+
+      <div class="name-card">
+        <span class="gr">eu·mne·sia</span> — from Greek <span class="gr">eu</span> (good, healthy)
+        + <span class="gr">mnēsis</span> (memory). In clinical language, eumnesia is memory
+        functioning as it should: nothing lost, nothing blurred. The opposite of amnesia —
+        and our standard for machine intelligence.
+      </div>
+    </div>
+
+    <section>
+      <div class="eyebrow">THE PROBLEM</div>
+      <h2>Efficient AI trades memory for speed.</h2>
+      <p>Compress the past into a fixed-size state, and a model starts forgetting facts it read
+      moments ago. Keep the past in full and recall is perfect — but the cost of attention grows
+      quadratically, until long context becomes unaffordable.</p>
+      <p>The field calls this the <strong>recall wall</strong>. Every long-context system today
+      picks a side of it.</p>
+    </section>
+
+    <section>
+      <div class="eyebrow">WHAT WE'RE BUILDING</div>
+      <h2>Memory that doesn't fade. Costs that don't explode.</h2>
+      <p>Our first architecture keeps a model's memory <strong>exact</strong> and learns
+      <strong>where to look</strong> — reading a small, chosen fraction of the past while
+      preserving the recall of full attention. Sub-quadratic, end to end.</p>
+      <p>It is in active development. Details arrive with the paper.</p>
+    </section>
+
+    <section>
+      <div class="eyebrow">HOW WE WORK</div>
+      <h2>Research first. Claims with receipts.</h2>
+      <p>Every claim we make ships with open, reproducible experiments — configs, logs, and
+      figures anyone can regenerate. Our first paper is in preparation, expected 2026.</p>
+    </section>
+
+    <section>
+      <div class="eyebrow">CONTACT</div>
+      <h2>Working on long context, memory, or efficient attention?</h2>
+      <p>We'd like to hear from you — collaborations, questions, or just to be notified when
+      we publish.</p>
+      <a class="cta" href="mailto:anuj@eumnesia.com">anuj@eumnesia.com</a>
+      <p class="aside">Eumnesia Labs · founded 2026</p>
+    </section>
+  </main>
+
+  <footer>
+    <div class="foot">
+      <span>© 2026 Eumnesia Labs</span>
+      <span>The end of AI amnesia.</span>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
